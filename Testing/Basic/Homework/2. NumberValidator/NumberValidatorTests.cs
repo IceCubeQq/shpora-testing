@@ -1,56 +1,73 @@
 ﻿using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FluentAssertions;
 
 namespace HomeExercise.Tasks.NumberValidator;
 
 [TestFixture]
 public class NumberValidatorTests
 {
-    [TestCase(-1, 2, true, TestName = "Invalid_Precision_Less_Than_Zero")]
-    [TestCase(0, 2, false, TestName = "Invalid_Precision_Is_Zero")]
-    [TestCase(3, -1, true, TestName = "Invalid_Scale_Less_Than_Zero")]
-    [TestCase(2, 2, true, TestName = "Invalid_Scale_Equals_Precision")]
-    [TestCase(2, 3, false, TestName = "Invalid_Scale_More_Than_Precision")]
-    public void Constructor_InvalidParameters_ThrowsArgumentException(int precision, int scale, bool onlyPositive)
+    [TestCase(-1, 2, true, "precision must be a positive number", TestName = "Precision less than zero")]
+    [TestCase(0, 2, false, "precision must be a positive number", TestName = "Precision is zero")]
+    public void Constructor_InvalidPrecision_ThrowsArgumentException(int precision, int scale, bool onlyPositive, string expectedMessage)
     {
-        Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        var exeption = Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        Assert.That(exeption.Message, Is.EqualTo(expectedMessage));
     }
 
-    [TestCase(1, 0, true, TestName = "Valid_Constructor_1_0")]
-    [TestCase(17, 2, false, TestName = "Valid_Constructor_17_2")]
-    public void Constructor_ValidParameters_DoesNotThrow(int precision, int scale, bool onlyPositive)
+    [TestCase(3, -1, true, "precision must be a non-negative number less or equal than precision", TestName = "Scale less than zero")]
+    [TestCase(2, 2, true, "precision must be a non-negative number less or equal than precision", TestName = "Scale equals precision")]
+    [TestCase(2, 3, false, "precision must be a non-negative number less or equal than precision", TestName = "Scale exceeds precision")]
+    public void Constructor_InvalidScale_ThrowsArgumentException(int precision, int scale, bool onlyPositive, string expectedMessage)
     {
-        Assert.DoesNotThrow(() => new NumberValidator(precision, scale, onlyPositive));
+        var exeption = Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        Assert.That(exeption.Message, Is.EqualTo(expectedMessage));
     }
 
-
-    // Тест, если пользователь введет вместо точки запятую
-    [TestCase(17, 2, true, "0,0", ExpectedResult = true, TestName = "Valid_Positive_With_Comma")]
-    // Тест на пустое значение
-    [TestCase(17, 2, true, "", ExpectedResult = false, TestName = "Invalid_Empty_String")]
-    // Проверка на скрытый +
-    [TestCase(3, 2, true, "1.23", ExpectedResult = true, TestName = "Valid_Without_Sign_Like_Precision")]
-    // Неверное значение заканчивается на точку
-    [TestCase(17, 2, true, "1.", ExpectedResult = false, TestName = "Invalid_EndsWithDot")]
-    // Тест на неправильное значение onlyPositive
-    [TestCase(3, 2, true, "-1.23", ExpectedResult = false, TestName = "Invalid_Negative")]
-
-
-    [TestCase(17, 2, false, "-1.23", ExpectedResult = true, TestName = "Valid_Negative")]
-    [TestCase(17, 2, true, "0.0", ExpectedResult = true, TestName = "Valid_Positive_With_Dot")]
-    [TestCase(17, 2, true, "0", ExpectedResult = true, TestName = "Valid_Integer")]
-    [TestCase(4, 2, true, "+1.23", ExpectedResult = true, TestName = "Valid_Plus_Sign_More_Precision")]
-    [TestCase(5, 2, true, "123.45", ExpectedResult = true, TestName = "Valid_Number_With_Scale")]
-    [TestCase(17, 2, true, null, ExpectedResult = false, TestName = "Invalid_Null")]
-    [TestCase(3, 2, true, "00.00", ExpectedResult = false, TestName = "Invalid_Too_Many_Digits")]
-    [TestCase(3, 2, true, "-0.00", ExpectedResult = false, TestName = "Invalid_Negative_Too_Long")]
-    [TestCase(3, 2, true, "+0.00", ExpectedResult = false, TestName = "Invalid_Positive_Too_Long")]
-    [TestCase(3, 2, true, "+1.23", ExpectedResult = false, TestName = "Invalid_Plus_Sign_More_Precision")]
-    [TestCase(17, 2, true, "0.000", ExpectedResult = false, TestName = "Invalid_Too_After_Dot")]
-    [TestCase(17, 2, true, "a.sd", ExpectedResult = false, TestName = "Invalid_Not_Number")]
-    public bool IsValidNumber_ReturnsExpectedResult(int precision, int scale, bool onlyPositive, string value)
+    [TestCase(17, 2, true, "0.0", TestName = "Valid: Positive zero with decimal")]
+    [TestCase(17, 2, true, "0,0", TestName = "Valid: Positive zero with comma")]
+    [TestCase(17, 2, true, "0", TestName = "Valid: Integer zero")]
+    [TestCase(3, 2, true, "1.23", TestName = "Valid: Number without sign fits precision")]
+    [TestCase(4, 2, true, "+1.23", TestName = "Valid: Plus sign fits precision")]
+    [TestCase(5, 2, true, "123.45", TestName = "Valid: Standard number with scale")]
+    [TestCase(17, 2, false, "-1.23", TestName = "Valid: Negative number allowed")]
+    public void IsValidNumber_ValidFormats_ReturnsTrue(int precision, int scale, bool onlyPositive, string value)
     {
         var validator = new NumberValidator(precision, scale, onlyPositive);
-        return validator.IsValidNumber(value);
+        Assert.That(validator.IsValidNumber(value), Is.True);
+    }
+
+    [TestCase(17, 2, true, "", TestName = "Empty string")]
+    [TestCase(17, 2, true, null, TestName = "Null value")]
+    [TestCase(17, 2, true, "1.", TestName = "Ends with dot")]
+    [TestCase(17, 2, true, "a.sd", TestName = "Contains letters")]
+    public void IsValidNumber_InvalidFormats_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    {
+        var validator = new NumberValidator(precision, scale, onlyPositive);
+        Assert.That(validator.IsValidNumber(value), Is.False);
+    }
+
+    [TestCase(17, 2, true, "0.000", TestName = "Fractional part exceeds scale")]
+    public void IsValidNumber_ScaleExceeded_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    {
+        var validator = new NumberValidator(precision, scale, onlyPositive);
+        Assert.That(validator.IsValidNumber(value), Is.False);
+    }
+
+    [TestCase(3, 2, true, "00.00", TestName = "Total length exceeds precision")]
+    [TestCase(3, 2, true, "-0.00", TestName = "Negative zero exceeds precision")]
+    [TestCase(3, 2, true, "+0.00", TestName = "Positive zero exceeds precision")]
+    [TestCase(3, 2, true, "+1.23", TestName = "Plus sign causes precision overflow")]
+    public void IsValidNumber_PrecisionExceeded_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    {
+        var validator = new NumberValidator(precision, scale, onlyPositive);
+        Assert.That(validator.IsValidNumber(value), Is.False);
+    }
+
+    [TestCase(17, 2, true, "-1.23", TestName = "Negative number when only positive is required")]
+    public void IsValidNumber_OnlyPositiveViolated_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    {
+        var validator = new NumberValidator(precision, scale, onlyPositive);
+        Assert.That(validator.IsValidNumber(value), Is.False);
     }
 }
