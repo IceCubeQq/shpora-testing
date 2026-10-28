@@ -1,6 +1,7 @@
-﻿using NUnit.Framework;
-using FluentAssertions;
+﻿using FluentAssertions;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
+
 
 namespace HomeExercise.Tasks.ObjectComparison;
 public class ObjectComparison
@@ -17,7 +18,20 @@ public class ObjectComparison
 
         actualTsar.Should().BeEquivalentTo(expectedTsar, options => options
             .IgnoringCyclicReferences()
-            .Excluding(ctx => ctx.Path.EndsWith("Id")));
+            .Excluding(ctx => ctx.Path == "Id" || ctx.Path.EndsWith(".Id")));
+
+        // Благодаря этому методу мы  сокращаем количество строк до одной, и при этом будут учитываться сразу все поля объекта,
+        // даже если добавим новые
+        // Также лучше прописать IgnoringCyclicReferences, чтобы избежать циклов в сравнениях
+
+        // Из интересного, если мы не хотим сравнивать сразу по всем полям, мы может в Excluding задать поля, которые не нужно сравнивать (например, id, который всегда уникален))
+
+        // Нам не нужно создавать свой метод для сравнения, в котором можно ошибиться.
+        // Там нужно вручную добавлять новые поля, что расходует время, а также это можно просто забыть сделать, из-за чего логика сравнения
+        // сломается.
+        // Еще, как я понял, BeEquivalentTo имеет подробные сообщения об ошибках, где можно сразу увидеть, какое поле не совпало. Вручную это опять же было бы
+        // сложнее поддерживать
+        // Ну и в целом наш подход занимает намного меньше места и более читаем.
 
         // ClassicAssert.AreEqual(actualTsar.Name, expectedTsar.Name);
         // ClassicAssert.AreEqual(actualTsar.Age, expectedTsar.Age);
