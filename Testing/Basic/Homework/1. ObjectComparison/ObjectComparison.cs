@@ -18,7 +18,7 @@ public class ObjectComparison
 
         actualTsar.Should().BeEquivalentTo(expectedTsar, options => options
             .IgnoringCyclicReferences()
-            .Excluding(ctx => ctx.Path == "Id" || ctx.Path.EndsWith(".Id")));
+            .Excluding(ctx => ctx.DeclaringType == typeof(Person) && ctx.Name == nameof(Person.Id)));
 
         // Благодаря этому методу мы  сокращаем количество строк до одной, и при этом будут учитываться сразу все поля объекта,
         // даже если добавим новые

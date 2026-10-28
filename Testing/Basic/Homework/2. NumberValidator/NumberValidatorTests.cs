@@ -9,7 +9,8 @@ public class NumberValidatorTests
     [TestCase(0, 2, false, TestName = "Precision is zero")]
     public void Constructor_InvalidPrecision_ThrowsArgumentException(int precision, int scale, bool onlyPositive)
     {
-        Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        var exception = Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        Assert.That(exception.Message, Is.EqualTo("precision must be a positive number"));
     }
 
     [TestCase(3, -1, true, TestName = "Scale less than zero")]
@@ -17,7 +18,8 @@ public class NumberValidatorTests
     [TestCase(2, 3, false, TestName = "Scale exceeds precision")]
     public void Constructor_InvalidScale_ThrowsArgumentException(int precision, int scale, bool onlyPositive)
     {
-        Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        var exception = Assert.Throws<ArgumentException>(() => new NumberValidator(precision, scale, onlyPositive));
+        Assert.That(exception.Message, Is.EqualTo("precision must be a non-negative number less or equal than precision"));
     }
 
     [TestCase(17, 2, true, "0.0", TestName = "Valid: Positive zero with dot")]
