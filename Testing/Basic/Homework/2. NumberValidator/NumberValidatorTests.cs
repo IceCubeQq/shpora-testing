@@ -34,31 +34,44 @@ public class NumberValidatorTests
     [TestCase(3, 2, true, "1.23", ExpectedResult = true, TestName = "Valid: Number without sign")]
     [TestCase(4, 2, true, "+1.23", ExpectedResult = true, TestName = "Valid: Plus sign fits precision")]
     [TestCase(17, 2, false, "-1.23", ExpectedResult = true, TestName = "Valid: Negative number allowed")]
-    [TestCase(17, 2, true, "-1.23", ExpectedResult = false, TestName = "Invalid: Negative number when only positive is required")]
+    
     public bool IsValidNumber_SignsAndOnlyPositive_ReturnsExpected(int precision, int scale, bool onlyPositive, string value)
     {
         var validator = new NumberValidator(precision, scale, onlyPositive);
         return validator.IsValidNumber(value);
     }
 
-    [TestCase(17, 2, true, "", TestName = "Empty string")]
-    [TestCase(17, 2, true, null, TestName = "Null value")]
-    [TestCase(17, 2, true, "1.", TestName = "Ends with dot")]
-    [TestCase(17, 2, true, "a.sd", TestName = "Contains letters")]
-    [TestCase(17, 2, true, "0.000", TestName = "Fractional part exceeds scale")]
-    public void IsValidNumber_InvalidFormats_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    [TestCase("", TestName = "Empty string")]
+    [TestCase(null, TestName = "Null value")]
+    [TestCase("1.", TestName = "Ends with dot")]
+    [TestCase("a.sd", TestName = "Contains letters")]
+    public void IsValidNumber_InvalidFormats_ReturnsFalse(string value)
     {
-        var validator = new NumberValidator(precision, scale, onlyPositive);
+        var validator = new NumberValidator(17, 2, true);
         Assert.That(validator.IsValidNumber(value), Is.False);
     }
 
-    [TestCase(3, 2, true, "00.00", TestName = "Total length exceeds precision")]
-    [TestCase(3, 2, true, "-0.00", TestName = "Negative zero exceeds precision")]
-    [TestCase(3, 2, true, "+0.00", TestName = "Positive zero exceeds precision")]
-    [TestCase(3, 2, true, "+1.23", TestName = "Plus sign causes precision overflow")]
-    public void IsValidNumber_PrecisionExceeded_ReturnsFalse(int precision, int scale, bool onlyPositive, string value)
+    [TestCase("00.00", TestName = "Total length exceeds precision")]
+    [TestCase("-0.00", TestName = "Negative zero exceeds precision")]
+    [TestCase("+0.00", TestName = "Positive zero exceeds precision")]
+    [TestCase("+1.23", TestName = "Plus sign causes precision overflow")]
+    public void IsValidNumber_PrecisionExceeded_ReturnsFalse(string value)
     {
-        var validator = new NumberValidator(precision, scale, onlyPositive);
+        var validator = new NumberValidator(3, 2, true);
         Assert.That(validator.IsValidNumber(value), Is.False);
+    }
+
+    [Test]
+    public void IsValidNumber_ScaleExceeded_ReturnsFalse()
+    {
+        var validator = new NumberValidator(17, 2, true);
+        Assert.That(validator.IsValidNumber("0.000"), Is.False);
+    }
+
+    [Test]
+    public void IsValidNumber_NegativeNumber_WhenOnlyPositiveRequired_ReturnsFalse()
+    {
+        var validator = new NumberValidator(17, 2, true);
+        Assert.That(validator.IsValidNumber("-1.23"), Is.False);
     }
 }
